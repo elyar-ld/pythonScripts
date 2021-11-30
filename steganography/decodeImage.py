@@ -1,42 +1,41 @@
-from random import seed
-from random import randint
 from PIL import Image
+from numpy import random as rn
+from numpy import arange
+from itertools import product
 import sys
 
 encoded = Image.open(sys.argv[1])
 pixelsEncoded = encoded.load()
 
-encodedBinArr = []
+rn.seed(int.from_bytes(bytes(sys.argv[2], encoding="utf-8"), byteorder="big") % 2**32)
 
-for i in range(encoded.size[0]):
-	for j in range(encoded.size[1]):
-		encodedBinArr.append(pixelsEncoded[i,j][0] & 1)
-		encodedBinArr.append(pixelsEncoded[i,j][1] & 1)
-		encodedBinArr.append(pixelsEncoded[i,j][2] & 1)
+range1 = list(rn.permutation(arange(encoded.size[0])))
+range2 = list(rn.permutation(arange(encoded.size[1])))
+range3 = list(rn.permutation(arange(3)))
 
-encodedBinArrLen = len(encodedBinArr)
-visited = [0]*encodedBinArrLen
-
-seed(int.from_bytes(bytes(sys.argv[2], encoding="utf-8"), byteorder="big"))
-
-randomPositions = [x for x in range(len(encodedBinArr))]
-m = len(randomPositions)
-while (m):
-	m -= 1
-	i = randint(0, m)
-	randomPositions[m], randomPositions[i] = randomPositions[i], randomPositions[m]
+randomIndexes = (list(product(*[range1, range2, range3])))
 
 size = 0
-for x in range(24):
-	size += encodedBinArr[randomPositions[x]] * (8388608 >> x)
-randomPositions = randomPositions[24:size*8+24]
+for i in range(24):
+	ranIndex = randomIndexes[i]
+	pixel = pixelsEncoded[int(ranIndex[0]),int(ranIndex[1])]
+	size += (pixel[int(ranIndex[2])] & 1) * (8388608 >> i)
+print(size)	
+randomIndexes = randomIndexes[24:size*8+24]
 
 decodedIntArr = []
+ind = 0
 for x in range(size):
 	byteInt = 0
 	for y in range(8):
-		byteInt += encodedBinArr[randomPositions[8*x+y]]*(0b10000000 >> y)
+		ranIndex = randomIndexes[ind]
+		val = pixelsEncoded[int(ranIndex[0]),int(ranIndex[1])][int(ranIndex[2])] & 1
+
+		byteInt += val*(0b10000000 >> y)
+
+		ind += 1
 	decodedIntArr.append(byteInt)
 
+print(decodedIntArr[:100])
 with open('resultDecoded', 'wb') as output:
     output.write(bytearray(decodedIntArr))

@@ -1,7 +1,11 @@
-from random import seed
-from random import randint
 from PIL import Image
+from time import time
+from numpy import random as rn
+from numpy import arange
+from itertools import product
 import sys
+
+ini = time()
 
 wrapperImg = Image.open(sys.argv[1])
 pixelsWrapper = wrapperImg.load()
@@ -20,55 +24,40 @@ if(len(dataEncoded) > 1024*2048):
 	print("Error: image to encode size is larger than 2MB: "+str((wrapperImg.size[0]*wrapperImg.size[1]*3 - 24)/8)+" bytes")
 	sys.exit()
 
-encodedBinArr = []
+rn.seed(int.from_bytes(bytes(sys.argv[3], encoding="utf-8"), byteorder="big") % 2**32)
 
-bytesNum = len(dataEncoded)
-#first 24 bits is the number of bytes of encoded image
-for i in range(24):
-	encodedBinArr.append(0)
-	a = 8388608 >> i
-	if (bytesNum & a) != 0:
-		encodedBinArr[i] = 1
+range1 = list(map(int,list(rn.permutation(arange(wrapperImg.size[0])))))
+range2 = list(map(int,list(rn.permutation(arange(wrapperImg.size[1])))))
+range3 = list(map(int,list(rn.permutation(arange(3)))))
 
-for byte in dataEncoded:
-	encodedBinArr.append(byte >> 7)
-	for x in range(6,0,-1):
-		encodedBinArr.append((byte >> x) & 1)	
-	encodedBinArr.append(byte & 1)
-
-wrapperByteArr = []
-
-for i in range(wrapperImg.size[0]):
-	for j in range(wrapperImg.size[1]):
-		wrapperByteArr.append(pixelsWrapper[i,j][0])
-		wrapperByteArr.append(pixelsWrapper[i,j][1])
-		wrapperByteArr.append(pixelsWrapper[i,j][2])
-
-wrapperByteArrLen = len(wrapperByteArr)
-seed(int.from_bytes(bytes(sys.argv[3], encoding="utf-8"), byteorder="big"))
-
-randomPositions = [x for x in range(wrapperByteArrLen)]
-m = len(randomPositions)
-while (m):
-	m -= 1
-	i = randint(0, m)
-	randomPositions[m], randomPositions[i] = randomPositions[i], randomPositions[m]
-randomPositions = randomPositions[:len(encodedBinArr)]
-
-for i in range(len(encodedBinArr)):
-	a = encodedBinArr[i] & 1
-	b = wrapperByteArr[randomPositions[i]] & 1
-	if a != b:
-		wrapperByteArr[randomPositions[i]] ^= 1
-
-result = Image.new( wrapperImg.mode, wrapperImg.size)
-pixelsResult = result.load()
+randomIndexes = (list(product(*[range1, range2, range3])))[:len(dataEncoded)*8+24]
 
 ind = 0
-for i in range(wrapperImg.size[0]):
-	for j in range(wrapperImg.size[1]):
-		pixelsResult[i,j] = (wrapperByteArr[ind],wrapperByteArr[ind+1],wrapperByteArr[ind+2])
-		ind += 3
+while ind < 24:
+	ranIndex = randomIndexes[ind]
+	pixel = list(pixelsWrapper[ranIndex[0], ranIndex[1]])
+	
+	a = 8388608 >> ind  						#it starts as 0b100000000000000000000000 = 8388608
+	b = (len(dataEncoded) & a) >> (23 - ind) 	#bit of Size that will be encoded
+	p = pixel[ranIndex[2]] & 1 #least significant bit of rgb pixel
 
-result.save('resultEncoded.png')
+	if (b ^ p): #least significant bit of rgb pixel changes only if different of bit b 
+		pixel[ranIndex[2]] = (pixel[ranIndex[2]] >> 1 << 1) + b
+	pixelsWrapper[ranIndex[0], ranIndex[1]] = tuple(pixel)
+	ind += 1
+print("entrando")
+
+for byte in dataEncoded:
+	for i in range(7,-1,-1):
+		ranIndex = randomIndexes[ind]
+		pixel = list(pixelsWrapper[ranIndex[0], ranIndex[1]])
+		pixel[ranIndex[2]] = (pixel[ranIndex[2]] >> 1 << 1) + ((byte >> i) & 1)
+		pixelsWrapper[ranIndex[0], ranIndex[1]] = tuple(pixel)
+		ind += 1
+
+print("saliendo")
+wrapperImg.save('resultEncoded.png')
+
+print(time()-ini)
+
 print("Finished!")
