@@ -1,11 +1,8 @@
 from PIL import Image
-from time import time
 from numpy import random as rn
 from numpy import arange
 from itertools import product
 import sys
-
-ini = time()
 
 wrapperImg = Image.open(sys.argv[1])
 pixelsWrapper = wrapperImg.load()
@@ -45,7 +42,6 @@ while ind < 24:
 		pixel[ranIndex[2]] = (pixel[ranIndex[2]] >> 1 << 1) + b
 	pixelsWrapper[ranIndex[0], ranIndex[1]] = tuple(pixel)
 	ind += 1
-print("entrando")
 
 for byte in dataEncoded:
 	for i in range(7,-1,-1):
@@ -55,9 +51,6 @@ for byte in dataEncoded:
 		pixelsWrapper[ranIndex[0], ranIndex[1]] = tuple(pixel)
 		ind += 1
 
-print("saliendo")
 wrapperImg.save('resultEncoded.png')
-
-print(time()-ini)
 
 print("Finished!")

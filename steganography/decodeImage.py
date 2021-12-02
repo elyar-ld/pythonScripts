@@ -20,7 +20,6 @@ for i in range(24):
 	ranIndex = randomIndexes[i]
 	pixel = pixelsEncoded[int(ranIndex[0]),int(ranIndex[1])]
 	size += (pixel[int(ranIndex[2])] & 1) * (8388608 >> i)
-print(size)	
 randomIndexes = randomIndexes[24:size*8+24]
 
 decodedIntArr = []
@@ -30,12 +29,9 @@ for x in range(size):
 	for y in range(8):
 		ranIndex = randomIndexes[ind]
 		val = pixelsEncoded[int(ranIndex[0]),int(ranIndex[1])][int(ranIndex[2])] & 1
-
 		byteInt += val*(0b10000000 >> y)
-
 		ind += 1
 	decodedIntArr.append(byteInt)
 
-print(decodedIntArr[:100])
 with open('resultDecoded', 'wb') as output:
     output.write(bytearray(decodedIntArr))
