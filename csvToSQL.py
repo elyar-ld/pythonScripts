@@ -7,7 +7,7 @@ if len(sys.argv) > 2: #if a table name is given in args
 
 sqlScript = open(tableName+".sql","w") #an .sql file will be the output
 
-with open(sys.argv[1],'r') as file:
+with open(sys.argv[1],'r', encoding="utf-8") as file:
 	reader = csv.reader(file, delimiter=',')
 	fields = next(reader)
 	dict = {} #this will check if a field name is repeated
